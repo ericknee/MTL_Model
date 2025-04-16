@@ -17,17 +17,17 @@ sentences = [
 dataset = "Sp1786/multiclass-sentiment-analysis-dataset"
 model = MTLModel()
 # model.get_data(dataset)
-embeddings = model.get_embeddings(sentences)
-
 for i, emb in enumerate(embeddings):
     min_val = emb.min().item()
     max_val = emb.max().item()
     mean_val = emb.mean().item()
     std_val = emb.std().item()
+    median_val = emb.median().item()
 
     print(f"Embedding {i+1}:")
-    print(f"  Min:  {min_val:.4f}")
-    print(f"  Max:  {max_val:.4f}")
-    print(f"  Mean: {mean_val:.4f}")
-    print(f"  Std:  {std_val:.4f}")
+    print(f"  Min:    {min_val:.4f}")
+    print(f"  Max:    {max_val:.4f}")
+    print(f"  Mean:   {mean_val:.4f}")
+    print(f"  Median: {median_val:.4f}")
+    print(f"  Std:    {std_val:.4f}")
     print(f"  Values: {emb.tolist()}\n")

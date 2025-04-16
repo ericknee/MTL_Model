@@ -15,48 +15,31 @@ class MTLTrainer:
         self.loss_fn = torch.nn.CrossEntropyLoss()
 
     def train(self, sentences, batch_size=8, epochs=3):
-        # assume s
-        data = []
-        for sample in sentences:
-            text = sample["text"]
-            sentiment_label = SENTIMENT_MAP[sample["sentiment"]] if sample.get("sentiment") in SENTIMENT_MAP else None
-            class_label = CLASS_MAP[sample["class"]] if sample.get("class") in CLASS_MAP else None
-            data.append((text, sentiment_label, class_label))
-
-        # Training loop
         self.model.train()
+        num_samples = len(sentences)
+        embeddings = torch.tensor([sample['embedding'] for sample in sentences], dtype=torch.float32).to(self.device)
+        class_labels = torch.tensor([sample['class'] if sample['class'] is not None else -100 for sample in sentences], dtype=torch.long).to(self.device)
+        sentiment_labels = torch.tensor([sample['sentiment'] if sample['sentiment'] is not None else -100 for sample in sentences], dtype=torch.long).to(self.device)
         for epoch in range(epochs):
             total_loss = 0
-            dataloader = DataLoader(data, batch_size=batch_size, shuffle=True)
+            for start in tqdm(range(0, num_samples, batch_size), desc=f"Epoch {epoch+1}"):
+                end = start + batch_size
+                batch_emb = embeddings[start:end]
+                batch_class_labels = class_labels[start:end]
+                batch_sentiment_labels = sentiment_labels[start:end]
 
-            for batch in tqdm(dataloader, desc=f"Epoch {epoch+1}"):
-                texts, sentiment_labels, class_labels = zip(*batch)
+                # Forward through classifier heads (embedding already computed)
+                topic_logits = self.model.topic_head(batch_emb)
+                sentiment_logits = self.model.sentiment_head(batch_emb)
 
-                # Tokenize
-                encoded = self.tokenizer(list(texts), padding=True, truncation=True, return_tensors='pt')
-                input_ids = encoded['input_ids'].to(self.device)
-                attention_mask = encoded['attention_mask'].to(self.device)
-
-                # Convert labels to tensors (masking None with -100, ignored by CrossEntropyLoss)
-                sentiment_targets = torch.tensor([
-                    label if label is not None else -100 for label in sentiment_labels
-                ], dtype=torch.long).to(self.device)
-
-                class_targets = torch.tensor([
-                    label if label is not None else -100 for label in class_labels
-                ], dtype=torch.long).to(self.device)
-
-                # Forward pass
-                topic_logits, sentiment_logits = self.model(input_ids=input_ids, attention_mask=attention_mask)
-
-                # Compute loss only on valid labels
+                # Compute masked losses
                 loss = 0
-                if (class_targets != -100).any():
-                    class_loss = self.loss_fn(topic_logits, class_targets)
+                if (batch_class_labels != -100).any():
+                    class_loss = self.loss_fn(topic_logits, batch_class_labels)
                     loss += class_loss
 
-                if (sentiment_targets != -100).any():
-                    sentiment_loss = self.loss_fn(sentiment_logits, sentiment_targets)
+                if (batch_sentiment_labels != -100).any():
+                    sentiment_loss = self.loss_fn(sentiment_logits, batch_sentiment_labels)
                     loss += sentiment_loss
 
                 # Backpropagation
@@ -66,5 +49,4 @@ class MTLTrainer:
 
                 total_loss += loss.item()
 
-            print(f"Epoch {epoch+1} - Avg Loss: {total_loss / len(dataloader):.4f}")
-
+            print(f"Epoch {epoch+1} - Avg Loss: {total_loss / (num_samples // batch_size):.4f}")
