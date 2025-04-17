@@ -1,5 +1,5 @@
-from transformer import MTLModel
-from trainer import MTLTrainer
+from MTLModel import MTLModel
+from MTLTrainer import MTLTrainer
 
 sentences = [
     {"text": "The government's response to the crisis was utterly disappointing.", "class": "politics", "sentiment": "negative"},
