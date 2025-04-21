@@ -1,6 +1,15 @@
 from MTLModel import MTLModel
 from MTLTrainer import MTLTrainer
+import torch
+from transformers import AutoTokenizer
+from sklearn.metrics import accuracy_score, f1_score
+from tqdm import tqdm
 
+# Mappings (reuse from above)
+SENTIMENT_MAP = {'negative': 0, 'neutral': 1, 'positive': 2}
+CLASS_MAP = {'politics': 0, 'sports': 1, 'technology': 2, 'health': 3, 'entertainment': 4}
+
+# Sentences dataset (your provided data)
 sentences = [
     {"text": "The government's response to the crisis was utterly disappointing.", "class": "politics", "sentiment": "negative"},
     {"text": "The team’s comeback victory was incredibly thrilling to watch.", "class": "sports", "sentiment": "positive"},
@@ -14,20 +23,10 @@ sentences = [
     {"text": "The show’s plot was predictable and lacked emotional depth.", "class": "entertainment", "sentiment": "negative"}
 ]
 
-dataset = "Sp1786/multiclass-sentiment-analysis-dataset"
-model = MTLModel()
-# model.get_data(dataset)
-for i, emb in enumerate(embeddings):
-    min_val = emb.min().item()
-    max_val = emb.max().item()
-    mean_val = emb.mean().item()
-    std_val = emb.std().item()
-    median_val = emb.median().item()
+for sample in sentences:
+    sample['class'] = CLASS_MAP.get(sample['class'], None)
+    sample['sentiment'] = SENTIMENT_MAP.get(sample['sentiment'], None)
 
-    print(f"Embedding {i+1}:")
-    print(f"  Min:    {min_val:.4f}")
-    print(f"  Max:    {max_val:.4f}")
-    print(f"  Mean:   {mean_val:.4f}")
-    print(f"  Median: {median_val:.4f}")
-    print(f"  Std:    {std_val:.4f}")
-    print(f"  Values: {emb.tolist()}\n")
+model = MTLModel()
+trainer = MTLTrainer(model)
+trainer.train(sentences, batch_size=4, epochs=3)
