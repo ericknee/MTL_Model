@@ -15,7 +15,7 @@ class MTLTrainer:
         self.optimizer = torch.optim.AdamW(model.parameters(), lr=2e-5)
         self.loss_fn = torch.nn.CrossEntropyLoss()
 
-    def train(self, sentences, batch_size=8, epochs=3):
+    def train(self, sentences, batch_size=16, epochs=3):
         self.model.train()
         num_samples = len(sentences)
         embeddings = torch.tensor([sample['embedding'] for sample in sentences], dtype=torch.float32).to(self.device)
